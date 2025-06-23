@@ -12,9 +12,9 @@ A professional task management application for Odoo 17 with modern UI design and
 <!-- Screenshots -->
 ### 📱 App Screenshots
 
-<img src="media/screenshot-1.png" width="250" alt="Screenshot 1">
-<img src="media/screenshot-2.png" width="250" alt="Screenshot 2">
-<img src="media/screenshot-3.png" width="250" alt="Screenshot 3">
+<img src="media/screenshot-1.PNG" width="250" alt="Screenshot 1">
+<img src="media/screenshot-2.PNG" width="250" alt="Screenshot 2">
+<img src="media/screenshot-3.PNG" width="250" alt="Screenshot 3">
 
 ## ✨ Features
 
