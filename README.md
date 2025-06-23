@@ -1,4 +1,4 @@
-# todo-list# Todo Manager Pro
+# Todo Manager Pro
 
 [![Odoo](https://img.shields.io/badge/Odoo-17.0-purple.svg)](https://www.odoo.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
