@@ -1,0 +1,492 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data>
+		
+		<!-- Bulk Action: Mark Selected Tasks as Done -->
+		<record id="action_bulk_mark_done" model="ir.actions.server">
+			<field name="name">Mark Selected as Done</field>
+			<field name="model_id" ref="model_todo_task"/>
+			<field name="binding_model_id" ref="model_todo_task"/>
+			<field name="binding_view_types">list</field>
+			<field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+			<field name="state">code</field>
+			<field name="code">
+				if records:
+					# Validate permissions and limits
+					if not env.user.has_group('base.group_user'):
+						raise UserError("You don't have permission to perform bulk operations.")
+					
+					if len(records) > 100:
+						raise UserError("Cannot process more than 100 tasks at once for security reasons.")
+					
+					try:
+						success_count = 0
+						error_count = 0
+						
+						for task in records:
+							try:
+								# Check ownership or admin rights
+								if task.user_id != env.user and not env.user.has_group('base.group_system'):
+									error_count += 1
+									continue
+								
+								# Validate task state
+								if not task.active:
+									error_count += 1
+									continue
+									
+								task.write({
+									'is_done': True,
+									'status': 'done',
+									'completed_date': fields.Date.today()
+								})
+								
+								task.message_post(body="Bulk action: Marked as completed!")
+								success_count += 1
+								
+							except Exception as e:
+								error_count += 1
+						
+						# Provide feedback
+						message = f'{success_count} task(s) marked as completed'
+						if error_count > 0:
+							message += f', {error_count} failed'
+						
+						action = {
+							'type': 'ir.actions.client',
+							'tag': 'display_notification',
+							'params': {
+								'title': 'Bulk Operation Complete',
+								'message': message,
+								'type': 'success' if error_count == 0 else 'warning',
+								'sticky': False,
+							}
+						}
+						
+					except Exception as e:
+						action = {
+							'type': 'ir.actions.client',
+							'tag': 'display_notification',
+							'params': {
+								'title': 'Error',
+								'message': 'Operation failed. Please try again.',
+								'type': 'danger',
+								'sticky': True,
+							}
+						}
+				else:
+					action = {
+						'type': 'ir.actions.client',
+						'tag': 'display_notification',
+						'params': {
+							'title': 'No Selection',
+							'message': 'Please select tasks to mark as done.',
+							'type': 'warning',
+							'sticky': False,
+						}
+					}
+			</field>
+		</record>
+
+		<!-- Bulk Action: Archive Selected Tasks -->
+		<record id="action_bulk_archive" model="ir.actions.server">
+			<field name="name">Archive Selected</field>
+			<field name="model_id" ref="model_todo_task"/>
+			<field name="binding_model_id" ref="model_todo_task"/>
+			<field name="binding_view_types">list</field>
+			<field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+			<field name="state">code</field>
+			<field name="code">
+				if records:
+					# Validate permissions and limits
+					if not env.user.has_group('base.group_user'):
+						raise UserError("You don't have permission to perform bulk operations.")
+					
+					if len(records) > 100:
+						raise UserError("Cannot process more than 100 tasks at once for security reasons.")
+					
+					try:
+						success_count = 0
+						error_count = 0
+						
+						for task in records:
+							try:
+								# Check ownership or admin rights
+								if task.user_id != env.user and not env.user.has_group('base.group_system'):
+									error_count += 1
+									continue
+								
+								if task.active:  # Only archive active tasks
+									task.write({'active': False})
+									task.message_post(body="Bulk action: Task archived!")
+									success_count += 1
+								else:
+									error_count += 1
+									
+							except Exception as e:
+								error_count += 1
+						
+						message = f'{success_count} task(s) moved to archive'
+						if error_count > 0:
+							message += f', {error_count} failed'
+						
+						action = {
+							'type': 'ir.actions.client',
+							'tag': 'display_notification',
+							'params': {
+								'title': 'Archive Complete',
+								'message': message,
+								'type': 'success' if error_count == 0 else 'warning',
+								'sticky': False,
+							}
+						}
+						
+					except Exception as e:
+						action = {
+							'type': 'ir.actions.client',
+							'tag': 'display_notification',
+							'params': {
+								'title': 'Error',
+								'message': 'Archive operation failed. Please try again.',
+								'type': 'danger',
+								'sticky': True,
+							}
+						}
+				else:
+					action = {
+						'type': 'ir.actions.client',
+						'tag': 'display_notification',
+						'params': {
+							'title': 'No Selection',
+							'message': 'Please select tasks to archive.',
+							'type': 'warning',
+							'sticky': False,
+						}
+					}
+			</field>
+		</record>
+
+		<!-- Bulk Action: Set High Priority -->
+		<record id="action_bulk_high_priority" model="ir.actions.server">
+			<field name="name">Set High Priority</field>
+			<field name="model_id" ref="model_todo_task"/>
+			<field name="binding_model_id" ref="model_todo_task"/>
+			<field name="binding_view_types">list</field>
+			<field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+			<field name="state">code</field>
+			<field name="code">
+				if records:
+					# Validate permissions and limits
+					if not env.user.has_group('base.group_user'):
+						raise UserError("You don't have permission to perform bulk operations.")
+					
+					if len(records) > 100:
+						raise UserError("Cannot process more than 100 tasks at once for security reasons.")
+					
+					try:
+						success_count = 0
+						error_count = 0
+						
+						for task in records:
+							try:
+								# Check ownership or admin rights
+								if task.user_id != env.user and not env.user.has_group('base.group_system'):
+									error_count += 1
+									continue
+								
+								# Validate priority value
+								if task.priority not in ['0', '1', '2', '3', '4']:
+									error_count += 1
+									continue
+								
+								task.write({'priority': '3'})
+								task.message_post(body="Bulk action: Priority set to High!")
+								success_count += 1
+								
+							except Exception as e:
+								error_count += 1
+						
+						message = f'{success_count} task(s) set to high priority'
+						if error_count > 0:
+							message += f', {error_count} failed'
+						
+						action = {
+							'type': 'ir.actions.client',
+							'tag': 'display_notification',
+							'params': {
+								'title': 'Priority Updated',
+								'message': message,
+								'type': 'success' if error_count == 0 else 'warning',
+								'sticky': False,
+							}
+						}
+						
+					except Exception as e:
+						action = {
+							'type': 'ir.actions.client',
+							'tag': 'display_notification',
+							'params': {
+								'title': 'Error',
+								'message': 'Priority update failed. Please try again.',
+								'type': 'danger',
+								'sticky': True,
+							}
+						}
+				else:
+					action = {
+						'type': 'ir.actions.client',
+						'tag': 'display_notification',
+						'params': {
+							'title': 'No Selection',
+							'message': 'Please select tasks to update priority.',
+							'type': 'warning',
+							'sticky': False,
+						}
+					}
+			</field>
+		</record>
+
+		<!-- Bulk Action: Start Work on Selected -->
+		<record id="action_bulk_start_work" model="ir.actions.server">
+			<field name="name">Start Work on Selected</field>
+			<field name="model_id" ref="model_todo_task"/>
+			<field name="binding_model_id" ref="model_todo_task"/>
+			<field name="binding_view_types">list</field>
+			<field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+			<field name="state">code</field>
+			<field name="code">
+				if records:
+					# Validate permissions and limits
+					if not env.user.has_group('base.group_user'):
+						raise UserError("You don't have permission to perform bulk operations.")
+					
+					if len(records) > 100:
+						raise UserError("Cannot process more than 100 tasks at once for security reasons.")
+					
+					try:
+						success_count = 0
+						error_count = 0
+						skipped_count = 0
+						
+						for task in records:
+							try:
+								# Check ownership or admin rights
+								if task.user_id != env.user and not env.user.has_group('base.group_system'):
+									error_count += 1
+									continue
+								
+								# Business logic: only start work on eligible tasks
+								if not task.is_done and task.status != 'in_progress' and task.active:
+									task.write({
+										'status': 'in_progress',
+										'is_done': False
+									})
+									task.message_post(body="Bulk action: Started working on this task!")
+									success_count += 1
+								else:
+									skipped_count += 1
+									
+							except Exception as e:
+								error_count += 1
+						
+						message = f'{success_count} task(s) moved to in progress'
+						if skipped_count > 0:
+							message += f', {skipped_count} skipped (already done/in progress)'
+						if error_count > 0:
+							message += f', {error_count} failed'
+						
+						action = {
+							'type': 'ir.actions.client',
+							'tag': 'display_notification',
+							'params': {
+								'title': 'Work Started',
+								'message': message,
+								'type': 'success' if error_count == 0 else 'warning',
+								'sticky': False,
+							}
+						}
+						
+					except Exception as e:
+						action = {
+							'type': 'ir.actions.client',
+							'tag': 'display_notification',
+							'params': {
+								'title': 'Error',
+								'message': 'Start work operation failed. Please try again.',
+								'type': 'danger',
+								'sticky': True,
+							}
+						}
+				else:
+					action = {
+						'type': 'ir.actions.client',
+						'tag': 'display_notification',
+						'params': {
+							'title': 'No Selection',
+							'message': 'Please select tasks to start working on.',
+							'type': 'warning',
+							'sticky': False,
+						}
+					}
+			</field>
+		</record>
+
+		<!-- Bulk Action: Reset to Todo -->
+		<record id="action_bulk_reset_todo" model="ir.actions.server">
+			<field name="name">Reset to Todo</field>
+			<field name="model_id" ref="model_todo_task"/>
+			<field name="binding_model_id" ref="model_todo_task"/>
+			<field name="binding_view_types">list</field>
+			<field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+			<field name="state">code</field>
+			<field name="code">
+				if records:
+					# Validate permissions and limits
+					if not env.user.has_group('base.group_user'):
+						raise UserError("You don't have permission to perform bulk operations.")
+					
+					if len(records) > 100:
+						raise UserError("Cannot process more than 100 tasks at once for security reasons.")
+					
+					try:
+						success_count = 0
+						error_count = 0
+						
+						for task in records:
+							try:
+								# Check ownership or admin rights
+								if task.user_id != env.user and not env.user.has_group('base.group_system'):
+									error_count += 1
+									continue
+								
+								task.write({
+									'status': 'todo',
+									'is_done': False,
+									'completed_date': False
+								})
+								task.message_post(body="Bulk action: Reset to To Do status!")
+								success_count += 1
+								
+							except Exception as e:
+								error_count += 1
+						
+						message = f'{success_count} task(s) reset to Todo status'
+						if error_count > 0:
+							message += f', {error_count} failed'
+						
+						action = {
+							'type': 'ir.actions.client',
+							'tag': 'display_notification',
+							'params': {
+								'title': 'Status Reset',
+								'message': message,
+								'type': 'success' if error_count == 0 else 'warning',
+								'sticky': False,
+							}
+						}
+						
+					except Exception as e:
+						action = {
+							'type': 'ir.actions.client',
+							'tag': 'display_notification',
+							'params': {
+								'title': 'Error',
+								'message': 'Reset operation failed. Please try again.',
+								'type': 'danger',
+								'sticky': True,
+							}
+						}
+				else:
+					action = {
+						'type': 'ir.actions.client',
+						'tag': 'display_notification',
+						'params': {
+							'title': 'No Selection',
+							'message': 'Please select tasks to reset.',
+							'type': 'warning',
+							'sticky': False,
+						}
+					}
+			</field>
+		</record>
+
+		<!-- Bulk Action: Unarchive Selected -->
+		<record id="action_bulk_unarchive" model="ir.actions.server">
+			<field name="name">Restore from Archive</field>
+			<field name="model_id" ref="model_todo_task"/>
+			<field name="binding_model_id" ref="model_todo_task"/>
+			<field name="binding_view_types">list</field>
+			<field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+			<field name="state">code</field>
+			<field name="code">
+				if records:
+					# Validate permissions and limits
+					if not env.user.has_group('base.group_user'):
+						raise UserError("You don't have permission to perform bulk operations.")
+					
+					if len(records) > 100:
+						raise UserError("Cannot process more than 100 tasks at once for security reasons.")
+					
+					try:
+						success_count = 0
+						error_count = 0
+						
+						for task in records:
+							try:
+								# Check ownership or admin rights
+								if task.user_id != env.user and not env.user.has_group('base.group_system'):
+									error_count += 1
+									continue
+								
+								if not task.active:  # Only unarchive inactive tasks
+									task.write({'active': True})
+									task.message_post(body="Bulk action: Task restored from archive!")
+									success_count += 1
+								else:
+									error_count += 1
+									
+							except Exception as e:
+								error_count += 1
+						
+						message = f'{success_count} task(s) restored from archive'
+						if error_count > 0:
+							message += f', {error_count} failed'
+						
+						action = {
+							'type': 'ir.actions.client',
+							'tag': 'display_notification',
+							'params': {
+								'title': 'Restore Complete',
+								'message': message,
+								'type': 'success' if error_count == 0 else 'warning',
+								'sticky': False,
+							}
+						}
+						
+					except Exception as e:
+						action = {
+							'type': 'ir.actions.client',
+							'tag': 'display_notification',
+							'params': {
+								'title': 'Error',
+								'message': 'Restore operation failed. Please try again.',
+								'type': 'danger',
+								'sticky': True,
+							}
+						}
+				else:
+					action = {
+						'type': 'ir.actions.client',
+						'tag': 'display_notification',
+						'params': {
+							'title': 'No Selection',
+							'message': 'Please select tasks to restore.',
+							'type': 'warning',
+							'sticky': False,
+						}
+					}
+			</field>
+		</record>
+
+	</data>
+</odoo>

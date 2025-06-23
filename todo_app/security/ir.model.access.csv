@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_todo_task_user,Todo Task User Access,model_todo_task,base.group_user,1,1,1,0
+access_todo_task_manager,Todo Task Manager Access,model_todo_task,base.group_system,1,1,1,1
+access_todo_task_portal,Todo Task Portal Access,model_todo_task,base.group_portal,1,0,0,0
